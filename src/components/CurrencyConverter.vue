@@ -13,7 +13,7 @@
           {{ option.text }}
         </option>
       </select>
-      <span v-on:click="swapCurrencies" class="swap" />
+      <span v-on:click="swapCurrencies" class="swap"></span>
       <select class="select" v-model="currencyTo">
         <option
           v-for="option in currencies"
@@ -27,7 +27,7 @@
     <input
       name="fromCurrency"
       placeholder="Введите сумму"
-      v-model.number="from"
+      v-model.number="volume"
     />
     {{ currencyFrom }}
     <div class="content">
@@ -42,7 +42,8 @@
 <script>
 import LineChart from './LineChart';
 import { DateTime } from 'luxon';
-import fetch from 'isomorphic-fetch';
+import { getConversionRate, getRateHistoryByDays } from '../api-requests';
+import config from '../config';
 
 export default {
   name: 'currency-converter',
@@ -50,19 +51,16 @@ export default {
     LineChart
   },
   data() {
+    const currencies = (config.currenciesList || ['USD', 'RUB']).map(currency => ({ text: currency }));
+
     return {
       currencyFrom: 'BTC',
       labels: [],
       currencyTo: 'USD',
-      from: 1,
+      volume: 1,
       result: undefined,
       header: '',
-      currencies: [
-        { text: "BTC" },
-        { text: "LTC" },
-        { text: "USD" },
-        { text: "RUB" }
-      ],
+      currencies,
       chartPointsLimit: 7,
       chartData: {
         labels: [],
@@ -82,7 +80,7 @@ export default {
       return `${this.currencyFrom}/${this.currencyTo}`;
     }
   },
-  created: function() {
+  created: async function() {
     let curDate = DateTime.local().startOf('day');
     const labels = [curDate.toISODate()];
 
@@ -90,22 +88,14 @@ export default {
       labels.unshift(curDate.minus({days: i}).toISODate());
     }
     this.chartData.labels = labels;
-    this.getConversionResult();
-    this.loadChartPoints(this.currencyFrom, this.currencyTo, this.chartPointsLimit)
-      .then(newChartPoints => this.chartData = this.refreshChartData(this.chartData, newChartPoints, this.chartLabel));
+    this.reloadCurrencies();
   },
   watch: {
-    currencyFrom: function (currencyFrom) {
-      this.getConversionResult(currencyFrom, this.currencyTo);
-      this.loadChartPoints(currencyFrom, this.currencyTo, this.chartPointsLimit)
-        .then(newChartPoints => this.chartData = this.refreshChartData(this.chartData, newChartPoints, this.chartLabel));
-    },
-    currencyTo: function (currencyTo) {
-      this.getConversionResult(this.currencyFrom, currencyTo);
-      this.loadChartPoints(this.currencyFrom, currencyTo, this.chartPointsLimit)
-        .then(newChartPoints => this.chartData = this.refreshChartData(this.chartData, newChartPoints, this.chartLabel));
-    },
-    from: 'getConversionResult'
+    currencyFrom: 'reloadCurrencies',
+    currencyTo: 'reloadCurrencies',
+    volume: async function (volume) {
+      this.result = await this.getConversionResult(this.currencyFrom, this.currencyTo, volume)
+    }
   },
   filters: {
     numbersOnly: function (value) {
@@ -125,36 +115,14 @@ export default {
       this.currencyTo = this.currencyFrom;
       this.currencyFrom = temp;
     },
-    getConversionResult: function() {
-      const self = this;
-      // todo handle API Error ("Response" field in JSON)
-      fetch(`https://min-api.cryptocompare.com/data/price?fsym=${this.currencyFrom}&tsyms=${this.currencyTo}`)
-        .then(function (response) {
-          // handle errors
-          return response.json();
-        })
-        .then(function (data) {
-          if (data.Response === 'Error') {
-            return Promise.reject(new Error(`API Error: ${data.Message}`));
-          }
-          if (data && data[self.currencyTo]) {
-            self.result = data[self.currencyTo] * Number(self.from);
-          }
-        })
-        .catch((err) => console.log(err))
+    reloadCurrencies: async function () {
+      this.result = await this.getConversionResult(this.currencyFrom, this.currencyTo, this.volume);
+      const points = await getRateHistoryByDays(this.currencyFrom, this.currencyTo, this.chartPointsLimit);
+      this.chartData = this.refreshChartData(this.chartData, points, this.chartLabel);
     },
-    loadChartPoints: function (currencyFrom, currencyTo, limit = 7) {
-      return fetch(`https://min-api.cryptocompare.com/data/histoday?fsym=${currencyFrom}&tsym=${currencyTo}&limit=${limit}`)
-        .then((res) => {
-          return res.json()
-        })
-        .then((result) => {
-          if (result.Response === 'Error') {
-            return Promise.reject(new Error(`API Error: ${result.Message}`));
-          }
-          return result && result.Data.map(item => item.close);
-        })
-        .catch(err => console.error(err))
+    getConversionResult: async function(currencyFrom, currencyTo, volume) {
+      const rate = await getConversionRate(currencyFrom, currencyTo);
+      return rate * volume;
     },
     refreshChartData: function (chartData, chartPoints, chartLabel) {
       return { ...chartData, datasets: [{ ...chartData.datasets[0], data: chartPoints, label: chartLabel }] };
