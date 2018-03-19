@@ -39,6 +39,9 @@
         },
         currencyTo: (state) => {
           return state.currencies.currencyTo
+        },
+        rateHistory: (state) => {
+          return state.rateHistory.rateHistory;
         }
       })
     },
@@ -50,14 +53,11 @@
         labels.unshift(curDate.minus({days: i}).toISODate());
       }
       this.chartData.labels = labels;
-      this.reloadCurrencies();
+      this.getRateHistory({ currencyFrom: this.currencyFrom, currencyTo: this.currencyTo });
     },
     watch: {
-      currencyFrom: 'reloadCurrencies',
-      currencyTo: 'reloadCurrencies',
-      volume: async function (volume) {
-        this.result = await this.getConversionResult(this.currencyFrom, this.currencyTo, volume)
-      }
+      currencyFrom: 'getRateHistory',
+      currencyTo: 'getRateHistory'
     },
     methods: {
       swapCurrencies: function() {
@@ -70,13 +70,11 @@
         const points = await getRateHistoryByDays(this.currencyFrom, this.currencyTo, this.chartPointsLimit);
         this.chartData = this.refreshChartData(this.chartData, points, this.chartLabel);
       },
-      getConversionResult: async function(currencyFrom, currencyTo, volume) {
-        const rate = await getExchangeRate(currencyFrom, currencyTo);
-        return rate * volume;
-      },
+
       refreshChartData: function (chartData, chartPoints, chartLabel) {
         return { ...chartData, datasets: [{ ...chartData.datasets[0], data: chartPoints, label: chartLabel }] };
-      }
+      },
+      ...mapActions(['getRateHistory'])
     }
   };
 </script>
