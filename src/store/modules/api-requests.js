@@ -2,7 +2,7 @@ import fetch from 'isomorphic-fetch';
 
 const apiHost = `https://min-api.cryptocompare.com`;
 
-export function getConversionRate(from, to) {
+export async function getExchangeRate(from, to) {
   // todo handle API Error ("Response" field in JSON)
   return fetch(`${apiHost}/data/price?fsym=${from}&tsyms=${to}`)
     .then(function(response) {
@@ -17,7 +17,7 @@ export function getConversionRate(from, to) {
     .catch(err => console.log(err));
 }
 
-export function getRateHistoryByDays(from, to, limit = 7) {
+export async function getRateHistoryByDays(from, to, limit = 7) {
   return fetch(
     `${apiHost}/data/histoday?fsym=${from}&tsym=${to}&limit=${limit}`
   )
