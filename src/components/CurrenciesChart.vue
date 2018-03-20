@@ -88,10 +88,11 @@ export default {
       );
     },
     refreshChartData: function(chartData, chartPoints, chartLabel) {
+      const points = chartPoints.map(point => point * 1000);
       return {
         ...chartData,
         datasets: [
-          { ...chartData.datasets[0], data: chartPoints, label: chartLabel }
+          { ...chartData.datasets[0], data: points, label: chartLabel }
         ]
       };
     }

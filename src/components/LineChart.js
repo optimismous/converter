@@ -12,6 +12,9 @@ export default {
         yAxes: [
           {
             ticks: {
+              callback: function(tick, index, ticks) {
+                return `${tick / 1000}`;
+              }
             }
           }
         ]
