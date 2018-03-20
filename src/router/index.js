@@ -8,8 +8,8 @@ export default new Router({
   routes: [
     {
       path: '/',
-      name: 'CurrencyConverter',
-      component: CurrencyConverter
+      name: 'CurrencyPage',
+      component: CurrencyPage
     }
   ]
 })

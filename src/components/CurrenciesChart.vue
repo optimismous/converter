@@ -5,76 +5,90 @@
 </template>
 
 <script>
-  import LineChart from './LineChart';
-  import { DateTime } from 'luxon';
-  import config from '../config';
-  import { mapState, mapActions } from 'vuex';
+import LineChart from "./LineChart";
+import { DateTime } from "luxon";
+import { mapState, mapActions, mapGetters } from "vuex";
 
-  export default {
-    name: 'currencies-chart',
-    data() {
-      return {
+export default {
+  name: "currencies-chart",
+  components: {
+    LineChart
+  },
+  data() {
+    return {
+      labels: [],
+      chartPointsLimit: 7,
+      chartData: {
         labels: [],
-        chartPointsLimit: 7,
-        chartData: {
-          labels: [],
-          datasets: [
-            {
-              label: '',
-              backgroundColor: 'transparent',
-              borderColor: '#41b883',
-              data: null
-            }
-          ]
-        }
-      };
-    },
-    computed: {
-      chartLabel: function () {
-        return `${this.currencyFrom}/${this.currencyTo}`;
-      },
-      ...mapState({
-        currencyFrom: (state) => {
-          return state.currencies.currencyFrom
-        },
-        currencyTo: (state) => {
-          return state.currencies.currencyTo
-        },
-        rateHistory: (state) => {
-          return state.rateHistory.rateHistory;
-        }
-      })
-    },
-    created: async function() {
-      let curDate = DateTime.local().startOf('day');
-      const labels = [curDate.toISODate()];
-
-      for (let i = 1; i < this.chartPointsLimit; i++) {
-        labels.unshift(curDate.minus({days: i}).toISODate());
+        datasets: [
+          {
+            label: "",
+            backgroundColor: "transparent",
+            borderColor: "#41b883",
+            data: null
+          }
+        ]
       }
-      this.chartData.labels = labels;
-      this.getRateHistory({ currencyFrom: this.currencyFrom, currencyTo: this.currencyTo });
-    },
-    watch: {
-      currencyFrom: 'getRateHistory',
-      currencyTo: 'getRateHistory'
-    },
-    methods: {
-      swapCurrencies: function() {
-        const temp = this.currencyTo;
-        this.currencyTo = this.currencyFrom;
-        this.currencyFrom = temp;
+    };
+  },
+  computed: {
+    ...mapState({
+      currencyFrom: state => {
+        return state.currencies.currencyFrom;
       },
-      reloadCurrencies: async function () {
-        this.result = await this.getConversionResult(this.currencyFrom, this.currencyTo, this.volume);
-        const points = await getRateHistoryByDays(this.currencyFrom, this.currencyTo, this.chartPointsLimit);
-        this.chartData = this.refreshChartData(this.chartData, points, this.chartLabel);
+      currencyTo: state => {
+        return state.currencies.currencyTo;
       },
-
-      refreshChartData: function (chartData, chartPoints, chartLabel) {
-        return { ...chartData, datasets: [{ ...chartData.datasets[0], data: chartPoints, label: chartLabel }] };
-      },
-      ...mapActions(['getRateHistory'])
+      rateHistory: state => {
+        return state.rateHistory.rateHistory;
+      }
+    }),
+    ...mapGetters(['getRateHistoryFor']),
+    chartLabel: function() {
+      return `${this.currencyFrom}/${this.currencyTo}`;
     }
-  };
+  },
+  created: async function() {
+    let curDate = DateTime.local().startOf("day");
+    const labels = [curDate.toISODate()];
+
+    for (let i = 1; i < this.chartPointsLimit; i++) {
+      labels.unshift(curDate.minus({ days: i }).toISODate());
+    }
+    this.chartData.labels = labels;
+  },
+  watch: {
+    currencyFrom: function(currencyFrom) {
+      this.reDraw(currencyFrom, this.currencyTo);
+    },
+    currencyTo: function(currencyTo) {
+      this.reDraw(this.currencyFrom, currencyTo);
+    }
+  },
+  methods: {
+    ...mapActions(["getRateHistory"]),
+    reDraw: async function(currencyFrom, currencyTo) {
+      await this.getRateHistory({
+        currencyFrom,
+        currencyTo
+      });
+
+      const rateHistory = this.getRateHistoryFor(currencyFrom, currencyTo).rateHistory;
+
+      this.chartData = this.refreshChartData(
+        this.chartData,
+        rateHistory,
+        this.chartLabel
+      );
+    },
+    refreshChartData: function(chartData, chartPoints, chartLabel) {
+      return {
+        ...chartData,
+        datasets: [
+          { ...chartData.datasets[0], data: chartPoints, label: chartLabel }
+        ]
+      };
+    }
+  }
+};
 </script>

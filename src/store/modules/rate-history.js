@@ -1,8 +1,8 @@
 import { getRateHistoryByDays } from "./api-requests";
 
-const GET_RATE_HISTORY_REQUEST = 'GET_RATE_HISTORY_REQUEST';
-const GET_RATE_HISTORY_SUCCESS = 'GET_RATE_HISTORY_SUCCESS';
-const GET_RATE_HISTORY_FAIL = 'GET_RATE_HISTORY_FAIL';
+const GET_RATE_HISTORY_REQUEST = "GET_RATE_HISTORY_REQUEST";
+const GET_RATE_HISTORY_SUCCESS = "GET_RATE_HISTORY_SUCCESS";
+const GET_RATE_HISTORY_FAIL = "GET_RATE_HISTORY_FAIL";
 
 const state = {
   rateHistory: {},
@@ -20,7 +20,7 @@ const mutations = {
     state.rateHistory[currencyFrom + currencyTo] = {
       rateHistory,
       lastUpdate: Date.now()
-    }
+    };
   },
   [GET_RATE_HISTORY_FAIL](state, { currencyFrom, currencyTo }) {
     state.fetching = false;
@@ -33,7 +33,11 @@ const actions = {
     commit(GET_RATE_HISTORY_REQUEST);
     try {
       const rateHistory = await getRateHistoryByDays(currencyFrom, currencyTo);
-      commit(GET_RATE_HISTORY_SUCCESS, { currencyFrom, currencyTo, rateHistory });
+      commit(GET_RATE_HISTORY_SUCCESS, {
+        currencyFrom,
+        currencyTo,
+        rateHistory
+      });
     } catch (e) {
       console.error(e);
       commit(GET_RATE_HISTORY_FAIL, { currencyFrom, currencyTo });
@@ -41,8 +45,14 @@ const actions = {
   }
 };
 
+const getters = {
+  getRateHistoryFor: state => (currencyFrom, currencyTo) =>
+    state.rateHistory[currencyFrom + currencyTo]
+};
+
 export default {
   state,
   mutations,
-  actions
+  actions,
+  getters
 };

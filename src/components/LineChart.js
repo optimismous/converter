@@ -1,4 +1,3 @@
-// CommitChart.js
 import { Line, mixins } from 'vue-chartjs'
 
 export default {
