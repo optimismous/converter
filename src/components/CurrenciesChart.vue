@@ -68,10 +68,16 @@ export default {
   methods: {
     ...mapActions(["getRateHistory"]),
     reDraw: async function(currencyFrom, currencyTo) {
-      await this.getRateHistory({
-        currencyFrom,
-        currencyTo
-      });
+
+      if (!this.getRateHistoryFor(currencyFrom, currencyTo) ||
+        this.getRateHistoryFor(currencyFrom, currencyTo).lastUpdate < DateTime.local().startOf("day").ts) {
+
+        await this.getRateHistory({
+          currencyFrom,
+          currencyTo
+        });
+
+      }
 
       const rateHistory = this.getRateHistoryFor(currencyFrom, currencyTo).rateHistory;
 
