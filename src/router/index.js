@@ -1,6 +1,6 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-import CurrencyConverter from '@/components/CurrencyConverter'
+import CurrencyPage from '@/components/CurrencyPage'
 
 Vue.use(Router)
 
